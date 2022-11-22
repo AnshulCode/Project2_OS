@@ -7,23 +7,15 @@
 
 
 static int ptr_to_mem = 0;
-
-
-static char mem[1000000] = {0};
-static int memory_left = sizeof(mem);
-static int memory_taken = 0;
-static char* pointer_to_mem;
-static void* return_val;
+char init = '-';
+char FREE = 'Y';
+char NOTFREE = 'N';
 static int init_arr = 0;
 
-
-
-
-
-void* umalloc(size_t size);
-
 void* umalloc(size_t size){
-
+    printf("we are inside malloc\n");
+    
+    printf("__________________________________________\n");
 
   printf("IN MALLOC\n");
   //check if there enough space for struct
@@ -32,48 +24,55 @@ void* umalloc(size_t size){
   }
 
   //init char array if first call to malloc
-  if(init_arr == 1){
-    memset(&mem,'-',sizeof(mem));
+  if(init_arr == 0){
+    printf("INIT SIZE OF MEM %d\n", sizeof(mem));
+ //   memset(&mem,'-',sizeof(mem));
+    init_arr = 1;
   }
+  printf("SIZE OF SIZE PARAM %d\n", size);
+  
   //create metadata
 
   //check for free blocks
   //insert code here for that
-
-  block* meta_data = (block*)&mem[ptr_to_mem];
+ 
+  block* meta_data = (block*)mem;
   meta_data->dataLength = size;
-  meta_data->is_free = 'N';
+  meta_data->is_free = NOTFREE;
   
-  printf("__________________________________________\n");
+  
   printf("SIZEOF STRUCT %d\n",sizeof(struct metadata));
   printf("SIZEOF SIZE %d\n", size);
-
+  printf("ptr to mem before metadata %d\n",  ptr_to_mem );
+  printf("after metadata %d\n",ptr_to_mem+sizeof(struct metadata));
   //get memory segment
-
-  void* ptr_to_data = (void*)&mem[ptr_to_mem+sizeof(struct metadata)];
-  ptr_to_mem += sizeof(struct metadata);
-  ptr_to_mem += size+1;
+  //int index_in_memory = ptr_to_mem+sizeof(struct metadata);
+  //char* ptr_to_data = &(mem[index_in_memory]);
   
-  memory_taken += sizeof(struct metadata)+size+1;
-  // check if there is room for next meta_data block
+  char* ptr_to_data = mem+sizeof(block);
+  
+  printf("MALLOC RETURN VALUE %p\n", ptr_to_data );
+  
+  
+  ptr_to_mem = ptr_to_mem + sizeof(struct metadata);
+  ptr_to_mem = ptr_to_mem + size+1;
+  
 
-  memory_left -= sizeof(struct metadata) + size +1;
+  
+  
+
+  //For METRICS
  
  
-  return ptr_to_data;
-}
-
-
-
-void pretty_print(){
-    printf("Bytes REMAINING: %d\n" , memory_left);
-    printf("Bytes TAKEN: %d\n" , memory_taken);
+ 
+    return ptr_to_data;
 }
 
 /*
 print all blocks in array
 */
 void print_blocks(){
+  printf("IN PRINT_BLOCKS\n");
   int i = 0;
   while(i < ptr_to_mem){
     block* curr_block = (block*)&mem[i];
@@ -86,38 +85,30 @@ void print_blocks(){
   }
 }
 
-/*
-
-
-Searches through all blocks of metadata
-return 1 on success, 0 on failure
-
-*/
-int search_blocks(void* ptr){
- // printf("MEMORY ADDRESS SEARCHING FOR %p\n",ptr);
+void free_blocks(void* ptr){
   int i = 0;
+  printf("IN FREE BLOCKS\n");
   while(i < ptr_to_mem){
     block* curr_block = (block*)&mem[i];
     void* data_block = (void*)&mem[i+sizeof(struct metadata)];
-    if(data_block == &ptr){
-        printf("BLOCK FOUND\n");
+    if(data_block == ptr){
+        printf("BLOCK FOUND to free\n");
+        curr_block->is_free = FREE;
         return 1;
     }
     i+= sizeof(struct metadata)+1+curr_block->dataLength;
   }
   return 0;
 }
-/*
 
-*/
-void free_blocks(void* ptr){
+int search_blocks(void* ptr){
+  printf("MEMORY ADDRESS SEARCHING FOR %p\n",ptr);
   int i = 0;
   while(i < ptr_to_mem){
     block* curr_block = (block*)&mem[i];
     void* data_block = (void*)&mem[i+sizeof(struct metadata)];
-    if(data_block == &ptr){
-        printf("BLOCK FOUND to free\n");
-        curr_block->is_free = 'Y';
+    if(data_block == ptr){
+        printf("BLOCK FOUND\n");
         return 1;
     }
     i+= sizeof(struct metadata)+1+curr_block->dataLength;
@@ -126,7 +117,14 @@ void free_blocks(void* ptr){
 }
 
 void ufree(void * ptr){
- 
+    printf("IN FREE\n");
+    if(search_blocks(ptr) == 0){
+       printf("NOTHING FOUND\n");
+      return;
+    }else{
+        free_blocks(ptr);
+    }
+
     
-    
+    return;
 }
